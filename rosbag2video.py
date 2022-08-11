@@ -68,6 +68,7 @@ class RosVideoWriter():
         self.t_file={}
         self.t_video={}
         self.p_avconv = {}
+        self.timestamps = []
 
     def parseArgs(self, args):
         opts, opt_files = getopt.getopt(args,"hsvr:o:t:p:",["fps=","rate=","ofile=","topic=","start=","end=","prefix="])
@@ -183,8 +184,16 @@ class RosVideoWriter():
                     exit(1)
             # send data to ffmpeg process pipe
             self.p_avconv[topic].stdin.write(msg.data)
+            self.timestamps.append(msg.header.stamp.to_sec())
             # next frame time
             self.t_video[topic] += 1.0/self.fps
+
+    def save_timestamps(self):
+        np_timestamps = np.array(self.timestamps)
+        dot_idx = self.opt_out_file.rfind('.')
+        prefix = self.opt_out_file[0:dot_idx]
+        print('Saving Timestamps Prefix: ', prefix)
+        np.save(prefix + '_timestamps', np_timestamps)
 
     def addBag(self, filename):
         if self.opt_display_images:
@@ -303,4 +312,5 @@ if __name__ == '__main__':
         #First arg is the bag to look at
         bagfile = opt_files[files]
         videowriter.addBag(bagfile)
+        videowriter.save_timestamps()
     print("finished")
